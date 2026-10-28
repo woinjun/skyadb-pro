@@ -15,3 +15,17 @@ app/build/
 .tmp*/
 *.apk
 gradle.properties
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+key.properties
+signing.properties
+secrets.properties
+*.aab
+*.apks
+*.idsig
+*.hprof
+.externalNativeBuild/
+.cxx/

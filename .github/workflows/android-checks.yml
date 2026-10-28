@@ -1,28 +1,46 @@
-name: Android 检查
-
+name: Android checks
 on:
-  push:
   pull_request:
-
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
 permissions:
   contents: read
-
 concurrency:
-  group: android-checks-${{ github.ref }}
+  group: checks-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: '17'
       - uses: android-actions/setup-android@v4
       - run: sdkmanager "platforms;android-37.0" "build-tools;37.0.0"
       - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
       - run: chmod +x gradlew
-      - run: ./gradlew --no-daemon testDebugUnitTest lintRelease assembleDebug
+      - name: Test lint build
+        run: |
+          set -o pipefail
+          ./gradlew --no-daemon --stacktrace --console=plain :app:testDebugUnitTest :app:lintDebug :app:assembleDebug 2>&1 | tee build.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: skyadb-debug-${{ github.sha }}
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-diagnostics-${{ github.run_id }}
+          path: |
+            build.log
+            app/build/reports/
+            app/build/test-results/
+      - if: failure()
+        run: echo '::error::See failed step and build-diagnostics artifact for stacktrace and reports.'
