@@ -29,7 +29,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import com.sky22333.skyadb.ui.components.AppTopBar as TopAppBar
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.material3.TextButton
+import com.sky22333.skyadb.data.QuickActionOrder
+import androidx.compose.material.icons.outlined.Bluetooth
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -68,6 +71,7 @@ fun DeviceScreen(
     onMirrorClick: () -> Unit = {},
     onLogsClick: () -> Unit = {},
     onPointerClick: () -> Unit = {},
+    onBluetoothClick: () -> Unit = {},
     viewModel: DeviceViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -86,7 +90,9 @@ fun DeviceScreen(
         onMirrorClick = onMirrorClick,
         onLogsClick = onLogsClick,
         onPointerClick = onPointerClick,
+        onBluetoothClick = onBluetoothClick,
         onRefreshClick = viewModel::refreshDeviceInfo,
+        onOrderSave = viewModel::saveQuickActionOrder,
         onToggleInfoClick = viewModel::toggleInfoExpanded,
     )
 }
@@ -107,8 +113,10 @@ private fun DeviceContent(
     onMirrorClick: () -> Unit,
     onLogsClick: () -> Unit,
     onPointerClick: () -> Unit = {},
+    onBluetoothClick: () -> Unit = {},
     onRefreshClick: () -> Unit,
     onToggleInfoClick: () -> Unit,
+    onOrderSave: (List<String>) -> Unit = {},
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
@@ -181,9 +189,12 @@ private fun DeviceContent(
             }
 
             item { SectionHeader(title = stringResource(R.string.section_quick_actions)) }
+            if (uiState.orderError) item { Text(stringResource(R.string.quick_save_error), color = MaterialTheme.colorScheme.error) }
             item {
                 QuickActionGrid(
                     sessionKind = uiState.sessionKind,
+                    order = uiState.quickActionOrder,
+                    onOrderSave = onOrderSave,
                     onAppsClick = onAppsClick,
                     onLocalAppsClick = onLocalAppsClick,
                     onInstallClick = onInstallClick,
@@ -195,6 +206,7 @@ private fun DeviceContent(
                     onMirrorClick = onMirrorClick,
                     onLogsClick = onLogsClick,
                     onPointerClick = onPointerClick,
+                    onBluetoothClick = onBluetoothClick,
                 )
             }
 
@@ -299,6 +311,8 @@ private fun InfoGrid(items: List<Pair<String, String>>) {
 @Composable
 private fun QuickActionGrid(
     sessionKind: AdbSessionKind,
+    order: List<String> = QuickActionOrder.defaults,
+    onOrderSave: (List<String>) -> Unit = {},
     onAppsClick: () -> Unit,
     onLocalAppsClick: () -> Unit,
     onInstallClick: () -> Unit,
@@ -310,29 +324,38 @@ private fun QuickActionGrid(
     onMirrorClick: () -> Unit,
     onLogsClick: () -> Unit,
     onPointerClick: () -> Unit = {},
+    onBluetoothClick: () -> Unit = {},
 ) {
     val shellLabel = stringResource(R.string.nav_shell)
     val actions = when (sessionKind) {
         AdbSessionKind.UsbFastboot -> listOf(
-            QuickActionSpec(stringResource(R.string.fastboot_console_title), Icons.Outlined.Code, onShellClick, SharedToolKeys.Shell),
+            QuickActionSpec("bluetooth", stringResource(R.string.bluetooth_pointer_title), Icons.Outlined.Bluetooth, onBluetoothClick),
+            QuickActionSpec("shell", stringResource(R.string.fastboot_console_title), Icons.Outlined.Code, onShellClick, SharedToolKeys.Shell),
         )
         AdbSessionKind.None, AdbSessionKind.Wifi, AdbSessionKind.UsbAdb -> listOf(
-            QuickActionSpec(stringResource(R.string.action_apps), Icons.Outlined.Apps, onAppsClick, SharedToolKeys.Apps),
-            QuickActionSpec(stringResource(R.string.nav_local_apps), Icons.Outlined.Apps, onLocalAppsClick, SharedToolKeys.LocalApps),
-            QuickActionSpec(stringResource(R.string.action_install_apk), Icons.Outlined.Android, onInstallClick, SharedToolKeys.Install),
-            QuickActionSpec(stringResource(R.string.action_download_online), Icons.Outlined.Download, onDownloadClick, SharedToolKeys.Download),
-            QuickActionSpec(stringResource(R.string.action_file_manage), Icons.Outlined.FolderOpen, onFilesClick, SharedToolKeys.Files),
-            QuickActionSpec(shellLabel, Icons.Outlined.Code, onShellClick, SharedToolKeys.Shell),
-            QuickActionSpec(stringResource(R.string.pointer_title), Icons.Outlined.Android, onPointerClick),
-            QuickActionSpec(stringResource(R.string.action_mirror), Icons.Outlined.Android, onMirrorClick),
-            QuickActionSpec(stringResource(R.string.action_remote), Icons.Outlined.Android, onRemoteClick, SharedToolKeys.Remote),
-            QuickActionSpec(stringResource(R.string.action_system_log), Icons.Outlined.Code, onLogsClick, SharedToolKeys.Logs),
-            QuickActionSpec(stringResource(R.string.nav_screenshot), Icons.Outlined.PhotoCamera, onScreenshotClick, SharedToolKeys.Screenshot),
+            QuickActionSpec("apps", stringResource(R.string.action_apps), Icons.Outlined.Apps, onAppsClick, SharedToolKeys.Apps),
+            QuickActionSpec("local_apps", stringResource(R.string.nav_local_apps), Icons.Outlined.Apps, onLocalAppsClick, SharedToolKeys.LocalApps),
+            QuickActionSpec("install", stringResource(R.string.action_install_apk), Icons.Outlined.Android, onInstallClick, SharedToolKeys.Install),
+            QuickActionSpec("download", stringResource(R.string.action_download_online), Icons.Outlined.Download, onDownloadClick, SharedToolKeys.Download),
+            QuickActionSpec("files", stringResource(R.string.action_file_manage), Icons.Outlined.FolderOpen, onFilesClick, SharedToolKeys.Files),
+            QuickActionSpec("shell", shellLabel, Icons.Outlined.Code, onShellClick, SharedToolKeys.Shell),
+            QuickActionSpec("bluetooth", stringResource(R.string.bluetooth_pointer_title), Icons.Outlined.Bluetooth, onBluetoothClick),
+            QuickActionSpec("pointer", stringResource(R.string.pointer_title), Icons.Outlined.Android, onPointerClick),
+            QuickActionSpec("mirror", stringResource(R.string.action_mirror), Icons.Outlined.Android, onMirrorClick),
+            QuickActionSpec("remote", stringResource(R.string.action_remote), Icons.Outlined.Android, onRemoteClick, SharedToolKeys.Remote),
+            QuickActionSpec("logs", stringResource(R.string.action_system_log), Icons.Outlined.Code, onLogsClick, SharedToolKeys.Logs),
+            QuickActionSpec("screenshot", stringResource(R.string.nav_screenshot), Icons.Outlined.PhotoCamera, onScreenshotClick, SharedToolKeys.Screenshot),
         )
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        actions.chunked(2).forEach { rowActions ->
+        var editing by remember { mutableStateOf(false) }
+        if (sessionKind != AdbSessionKind.UsbFastboot) {
+            TextButton(onClick = { editing = true }) { Text(stringResource(R.string.quick_edit)) }
+        }
+        if (editing) QuickActionEditor(order, actions.associate { it.id to it.label },
+            onSave = { onOrderSave(it); editing = false }, onDismiss = { editing = false })
+        actions.sortedBy { QuickActionOrder.normalize(order).indexOf(it.id) }.chunked(2).forEach { rowActions ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -355,6 +378,7 @@ private fun QuickActionGrid(
 }
 
 private data class QuickActionSpec(
+    val id: String,
     val label: String,
     val icon: ImageVector,
     val onClick: () -> Unit,

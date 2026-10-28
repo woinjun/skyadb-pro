@@ -40,7 +40,10 @@ import com.sky22333.skyadb.ui.components.AppTopBar
 fun PointerScreen(
     bottomPadding: Dp = 0.dp,
     onBackClick: () -> Unit,
-    viewModel: PointerViewModel = viewModel(),
+    viewModel: PointerController = viewModel<PointerViewModel>(),
+    bluetooth: Boolean = false,
+    onConnectDevice: (() -> Unit)? = null,
+    connectionContent: @Composable () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -52,9 +55,11 @@ fun PointerScreen(
 
     DisposableEffect(lifecycle, viewModel) {
         val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_START) viewModel.connect()
             if (event == Lifecycle.Event.ON_STOP) viewModel.disconnect()
         }
         lifecycle.addObserver(observer)
+        if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) viewModel.connect()
         onDispose { lifecycle.removeObserver(observer); viewModel.disconnect() }
     }
     DisposableEffect(view, state.ready) {
@@ -79,7 +84,7 @@ fun PointerScreen(
 
     Column(Modifier.fillMaxSize().padding(bottom = bottomPadding)) {
         AppTopBar(
-            title = { Text(stringResource(R.string.pointer_title)) },
+            title = { Text(stringResource(if (bluetooth) R.string.bluetooth_pointer_title else R.string.pointer_title)) },
             navigationIcon = {
                 IconButton(onClick = onBackClick) {
                     Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.action_back))
@@ -90,15 +95,16 @@ fun PointerScreen(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(stringResource(R.string.pointer_intro), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(if (bluetooth) R.string.bluetooth_intro else R.string.pointer_intro), style = MaterialTheme.typography.bodyMedium)
             Text(stringResource(state.status), color = if (state.detail.isEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
             if (state.detail.isNotEmpty()) Text(state.detail, style = MaterialTheme.typography.bodySmall)
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = viewModel::connect, enabled = !state.ready && !state.connecting) {
-                    Text(stringResource(R.string.pointer_connect))
-                }
-                OutlinedButton(onClick = viewModel::disconnect, enabled = state.ready || state.connecting) {
-                    Text(stringResource(R.string.pointer_stop))
+            connectionContent()
+            if (!bluetooth && !state.ready && !state.connecting) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = viewModel::connect) { Text(stringResource(R.string.pointer_retry)) }
+                    if (onConnectDevice != null) OutlinedButton(onClick = onConnectDevice) {
+                        Text(stringResource(R.string.action_go_connect))
+                    }
                 }
             }
             if (state.connecting) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -146,7 +152,7 @@ fun PointerScreen(
             Text(stringResource(R.string.pointer_sensitivity, state.sensitivity), style = MaterialTheme.typography.labelLarge)
             Slider(value = state.sensitivity, onValueChange = viewModel::sensitivity, valueRange = 0.3f..3f)
             HorizontalDivider()
-            Text(stringResource(R.string.pointer_air_title), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(if (bluetooth) R.string.bluetooth_air_title else R.string.pointer_air_title), style = MaterialTheme.typography.titleMedium)
             Text(stringResource(R.string.pointer_air_hint), style = MaterialTheme.typography.bodySmall)
             if (gyroscope == null) Text(stringResource(R.string.pointer_no_gyro), color = MaterialTheme.colorScheme.error)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {

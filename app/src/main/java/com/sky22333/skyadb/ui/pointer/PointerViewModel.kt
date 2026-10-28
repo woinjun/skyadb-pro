@@ -1,12 +1,10 @@
 package com.sky22333.skyadb.ui.pointer
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sky22333.skyadb.AppServices
 import com.sky22333.skyadb.R
 import com.sky22333.skyadb.model.AdbOperationResult
 import com.sky22333.skyadb.pointer.AdbMouseSession
-import com.sky22333.skyadb.pointer.GyroMotion
 import com.sky22333.skyadb.pointer.MouseMotionBuffer
 import java.io.EOFException
 import java.util.concurrent.atomic.AtomicLong
@@ -18,8 +16,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -34,19 +30,15 @@ data class PointerUiState(
     val sensitivity: Float = 1f,
 )
 
-class PointerViewModel : ViewModel() {
-    private val state = MutableStateFlow(PointerUiState())
-    val uiState = state.asStateFlow()
+class PointerViewModel : PointerController() {
     private val generation = AtomicLong()
     private val session = AtomicReference<AdbMouseSession?>()
     private val cleanup = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var worker: Job? = null
     private var logs: Job? = null
     private var reader: Job? = null
-    private var motion = MouseMotionBuffer()
-    private var gyro = GyroMotion()
 
-    fun connect() {
+    override fun connect() {
         if (state.value.connecting || state.value.ready) return
         val token = generation.incrementAndGet()
         motion = MouseMotionBuffer()
@@ -108,7 +100,7 @@ class PointerViewModel : ViewModel() {
         state.value = state.value.copy(status = R.string.pointer_failed, detail = error.message.orEmpty().take(600))
     }
 
-    @Synchronized fun disconnect() {
+    @Synchronized override fun disconnect() {
         generation.incrementAndGet()
         val active = session.getAndSet(null)
         cleanup.launch { active?.close() }
@@ -121,48 +113,7 @@ class PointerViewModel : ViewModel() {
         )
     }
 
-    fun move(x: Float, y: Float) {
-        if (state.value.ready) motion.move(x * state.value.sensitivity, y * state.value.sensitivity)
-    }
-
-    fun scroll(amount: Float) {
-        if (state.value.ready) motion.move(0f, 0f, amount)
-    }
-
-    fun click(right: Boolean = false) {
-        if (!state.value.ready) return
-        try {
-            // Release a drag before sending a complete click.
-            motion.button(if (right) 2 else 1)
-            motion.button(0)
-            state.value = state.value.copy(dragging = false)
-        } catch (e: IllegalStateException) { fail(generation.get(), e) }
-    }
-
-    fun toggleDrag() {
-        if (!state.value.ready) return
-        try {
-            val next = !state.value.dragging
-            motion.button(if (next) 1 else 0)
-            state.value = state.value.copy(dragging = next)
-        } catch (e: IllegalStateException) { fail(generation.get(), e) }
-    }
-
-    fun sensitivity(value: Float) { state.value = state.value.copy(sensitivity = value.coerceIn(0.3f, 3f)) }
-
-    fun flying(enabled: Boolean) {
-        gyro = GyroMotion()
-        state.value = state.value.copy(flying = enabled && state.value.ready, calibrated = false)
-    }
-
-    fun recalibrate() { gyro = GyroMotion(); state.value = state.value.copy(calibrated = false) }
-
-    fun sensor(timestamp: Long, values: FloatArray, rotation: Int) {
-        if (!state.value.ready || !state.value.flying) return
-        val (x, y) = gyro.sample(timestamp, values, rotation, state.value.sensitivity)
-        motion.move(x, y)
-        if (state.value.calibrated != gyro.calibrated) state.value = state.value.copy(calibrated = gyro.calibrated)
-    }
+    override fun inputFailed(error: Exception) { fail(generation.get(), error) }
 
     override fun onCleared() {
         disconnect()
