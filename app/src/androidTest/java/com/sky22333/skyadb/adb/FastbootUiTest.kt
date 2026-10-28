@@ -76,7 +76,7 @@ class FastbootUiTest {
         assertTrue(repository.connectUsbOtg(device!!.deviceName) is AdbOperationResult.Success)
         ParcelFileDescriptor.AutoCloseInputStream(
                 instrumentation.uiAutomation.executeShellCommand(
-                    "am start -n com.sky22333.skyadb/.MainActivity"
+                    "am start -n ${instrumentation.targetContext.packageName}/com.sky22333.skyadb.MainActivity"
                 )
             )
             .use { it.readBytes() }
@@ -124,7 +124,7 @@ class FastbootUiTest {
             // Re-enumeration must deliver to this Activity without replacing its navigation/UI.
             ParcelFileDescriptor.AutoCloseInputStream(
                     instrumentation.uiAutomation.executeShellCommand(
-                        "am start -n com.sky22333.skyadb/.MainActivity -a android.hardware.usb.action.USB_DEVICE_ATTACHED"
+                        "am start -n ${instrumentation.targetContext.packageName}/com.sky22333.skyadb.MainActivity -a android.hardware.usb.action.USB_DEVICE_ATTACHED"
                     )
                 )
                 .use { it.readBytes() }

@@ -173,3 +173,13 @@ Actions 错误与 Issue，改用上述手工流程，不授予长期高权限 PA
 第一阶段已上传至 PR #1，GitHub Actions 40628392179 构建成功；
 前述授权阻塞记录仅为历史状态。用户现已选定先交付 ADB 触控板与 ADB 飞鼠，
 蓝牙 HID 飞鼠后续实现。1.3.0 功能范围、入口、验证结果及真机步骤见 ADB-POINTER.md。
+
+## v1.3.0 正式发布配置
+用户已确认正式包名固定为 io.github.woinjun.skyadbpro，应用名称 SkyADB Pro。
+Gradle 中直接固定包名，Debug 使用同一包名加 .enhanced.debug 后缀。
+正式签名已生成，长期备份由维护者保存；仓库只提交公开 signing-certificate.sha256。
+正式构建时传入四项签名 Secrets，工作流核对证书指纹后才发布。
+不再需要 ENHANCED_APPLICATION_ID 环境 Variable，前文的候选标识方案已被本节取代。
+发布入口支持 v* Tag、手动 workflow_dispatch，及专用 release/v* 分支。
+release/v1.3.0 或手动发布只在测试、Release Lint、签名构建与证书核验通过后创建版本 Tag 和 Release。
+更新报告见 releases/v1.3.0.md。main 不会被直接覆盖，PR 保持待审核。

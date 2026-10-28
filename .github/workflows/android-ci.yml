@@ -2,6 +2,14 @@ name: Signed release
 on:
   push:
     tags: ['v*']
+    branches: ['release/v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag matching version.properties'
+        required: true
+        default: v1.3.0
+        type: string
 permissions:
   contents: read
 concurrency:
@@ -15,7 +23,8 @@ jobs:
     permissions:
       contents: write
     env:
-      ENHANCED_APPLICATION_ID: ${{ vars.ENHANCED_APPLICATION_ID }}
+      ENHANCED_APPLICATION_ID: io.github.woinjun.skyadbpro
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -23,13 +32,18 @@ jobs:
       - name: Validate version and identity
         run: |
           set -euo pipefail
-          [[ "$GITHUB_REF_NAME" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          RELEASE_TAG="${RELEASE_TAG#release/}"
+          echo "RELEASE_TAG=$RELEASE_TAG" >> "$GITHUB_ENV"
+          [[ "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
           source version.properties
-          [[ "$GITHUB_REF_NAME" == "v$VERSION_NAME" ]]
+          [[ "$RELEASE_TAG" == "v$VERSION_NAME" ]]
+          if git rev-parse "refs/tags/$RELEASE_TAG^{commit}" >/dev/null 2>&1; then
+            [[ "$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")" == "$(git rev-parse HEAD)" ]]
+          fi
           [[ "$VERSION_CODE" =~ ^[1-9][0-9]*$ ]]
           (( VERSION_CODE > 101069 && VERSION_CODE <= 2100000000 ))
           [[ "$ENHANCED_APPLICATION_ID" =~ ^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*){2,}$ ]]
-          [[ "$ENHANCED_APPLICATION_ID" != com.sky22333.skyadb ]]
+          [[ "$ENHANCED_APPLICATION_ID" == io.github.woinjun.skyadbpro ]]
           previous=$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD^ 2>/dev/null || true)
           if [[ -n "$previous" ]]; then
             old=$(git show "$previous:version.properties" 2>/dev/null | sed -n 's/^VERSION_CODE=//p' || true)
@@ -69,13 +83,22 @@ jobs:
         run: |
           set -euo pipefail
           mkdir dist
-          cp app/build/outputs/apk/release/app-release.apk "dist/SkyADB-Enhanced-$GITHUB_REF_NAME.apk"
+          cp app/build/outputs/apk/release/app-release.apk "dist/SkyADB-Pro-$RELEASE_TAG.apk"
           "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --verbose --print-certs dist/*.apk
+          actual=$("$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --print-certs dist/*.apk | sed -n 's/^.*certificate SHA-256 digest: //p' | head -n 1)
+          expected=$(tr -d '\r\n' < signing-certificate.sha256)
+          [[ "$actual" == "$expected" ]] || { echo '::error::Signing certificate mismatch'; exit 1; }
           (cd dist && sha256sum *.apk > SHA256SUMS)
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "SkyADB Enhanced $GITHUB_REF_NAME" --generate-notes
+        run: |
+          notes="docs/releases/$RELEASE_TAG.md"
+          if [[ -f "$notes" ]]; then
+            gh release create "$RELEASE_TAG" dist/* --target "$GITHUB_SHA" --title "SkyADB Pro $RELEASE_TAG" --notes-file "$notes"
+          else
+            gh release create "$RELEASE_TAG" dist/* --target "$GITHUB_SHA" --title "SkyADB Pro $RELEASE_TAG" --generate-notes
+          fi
       - if: always()
         uses: actions/upload-artifact@v4
         with:

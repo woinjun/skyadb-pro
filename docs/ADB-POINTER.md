@@ -73,3 +73,12 @@ APK SHA-256：6d9e182d6f63882a622e80e7a43bcd4230d6ad5fdb4765ef9d88fcbcfb32cea4
 没有 Android 真机连接，本次未执行仪器测试或宣称真机功能通过。
 目前仅完成本地开发分支 develop/adb-pointer，尚未上传此功能版本或创建新 PR。
 第一阶段 PR #1 已通过云端构建，仍保持未合并。
+
+## 正式版签名配置
+用户已指定正式包名 io.github.woinjun.skyadbpro，应用名称 SkyADB Pro；
+此前 Debug 包名与测试版说明为历史构建记录。
+本地正式 Release 构建和 R8 优化成功（3m 5s），73 项测试通过，
+Release Lint 0 错误、64 警告；固定 RSA 3072 签名验证通过。
+正式版 APK SHA-256：473c71a53175bf8e32f2051bcc9455115ee0c7836d6360e316668a992e422783
+正式证书 SHA-256：501a2abd35a7a4d6e0a770cda6df8c0b466147ed74e47c5a8335ccad9e0d6a45
+完整更新报告见 releases/v1.3.0.md；真机验收仍未执行。
