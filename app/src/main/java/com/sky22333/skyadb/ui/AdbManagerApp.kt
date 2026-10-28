@@ -198,6 +198,7 @@ fun AdbManagerApp() {
                             onMirrorClick = { navController.navigate(MirrorRoute) },
                             onLogsClick = { navController.navigate(LogsRoute) },
                             onPointerClick = { navController.navigate("pointer") },
+                            onBluetoothClick = { navController.navigate("bluetooth_pointer") },
                         )
                     }
                     appComposable(AppDestination.Settings.route) {
@@ -281,8 +282,20 @@ fun AdbManagerApp() {
                     appComposable(RemoteRoute, SharedToolKeys.Remote) {
                         RemoteControlScreen(bottomPadding = bottomPadding, onBackClick = { navController.popBackStack() })
                     }
+                    appComposable("bluetooth_pointer") {
+                        com.sky22333.skyadb.ui.pointer.BluetoothPointerScreen(bottomPadding, onBackClick = { navController.popBackStack() })
+                    }
                     appComposable("pointer") {
-                        PointerScreen(bottomPadding = bottomPadding, onBackClick = { navController.popBackStack() })
+                        PointerScreen(
+                            bottomPadding = bottomPadding,
+                            onBackClick = { navController.popBackStack() },
+                            onConnectDevice = {
+                                navController.navigate(AppDestination.Home.route) {
+                                    popUpTo(AppDestination.Home.route) { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            },
+                        )
                     }
                     appComposable(MirrorRoute) {
                         MirrorScreen(onBackClick = { navController.popBackStack() })

@@ -24,6 +24,8 @@ data class DeviceUiState(
     val refreshing: Boolean = false,
     val refreshStatus: OperationStatus = OperationStatus.Idle,
     val infoExpanded: Boolean = false,
+    val quickActionOrder: List<String> = com.sky22333.skyadb.data.QuickActionOrder.defaults,
+    val orderError: Boolean = false,
 )
 
 class DeviceViewModel(
@@ -33,6 +35,11 @@ class DeviceViewModel(
     val uiState: StateFlow<DeviceUiState> = state.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            AppServices.settingsStore.settings.collect { settings ->
+                state.value = state.value.copy(quickActionOrder = settings.quickActionOrder)
+            }
+        }
         viewModelScope.launch {
             adbRepository.selectedDeviceInfo.collect { info ->
                 state.value = state.value.copy(info = info)
@@ -59,6 +66,15 @@ class DeviceViewModel(
                     )
                 }
             }
+        }
+    }
+
+    fun saveQuickActionOrder(order: List<String>) {
+        viewModelScope.launch {
+            try {
+                AppServices.settingsStore.updateQuickActionOrder(order)
+                state.value = state.value.copy(orderError = false)
+            } catch (_: java.io.IOException) { state.value = state.value.copy(orderError = true) }
         }
     }
 

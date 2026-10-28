@@ -33,6 +33,13 @@ object MouseProtocol {
     }
 
     fun destroy(): ByteArray = byteArrayOf(14, 0, DeviceId.toByte())
+
+    /** Same HID descriptor on Bluetooth; strip the scrcpy envelope (no report ID). */
+    fun hidReport(frame: ByteArray, bootProtocol: Boolean = false): ByteArray {
+        require(frame.size == 9 && frame[0] == 13.toByte() && frame[1] == 0.toByte() &&
+            frame[2] == DeviceId.toByte() && frame[3] == 0.toByte() && frame[4] == 4.toByte())
+        return frame.copyOfRange(5, if (bootProtocol) 8 else 9)
+    }
 }
 
 /** Coalesce motion without dropping button releases or fractional movement. Bounded backlog. */

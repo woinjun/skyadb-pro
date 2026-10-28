@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.map
 private val Context.appSettingsDataStore by preferencesDataStore(name = "app_settings")
 
 data class AppSettings(
+    val quickActionOrder: List<String> = QuickActionOrder.defaults,
     val defaultPort: Int = 5555,
     val connectionTimeoutSeconds: Int = 10,
     val commandTimeoutSeconds: Int = 30,
@@ -44,6 +45,7 @@ class AppSettingsStore(context: Context) {
         }
         .map { preferences ->
             AppSettings(
+                quickActionOrder = QuickActionOrder.normalize(preferences[Keys.QuickActionOrder].orEmpty().split(",")),
                 defaultPort = preferences[Keys.DefaultPort] ?: 5555,
                 connectionTimeoutSeconds = preferences[Keys.ConnectionTimeoutSeconds] ?: 10,
                 commandTimeoutSeconds = preferences[Keys.CommandTimeoutSeconds] ?: 30,
@@ -91,7 +93,12 @@ class AppSettingsStore(context: Context) {
         }
     }
 
+    suspend fun updateQuickActionOrder(order: List<String>) {
+        dataStore.edit { it[Keys.QuickActionOrder] = QuickActionOrder.normalize(order).joinToString(",") }
+    }
+
     private object Keys {
+        val QuickActionOrder = stringPreferencesKey("quick_action_order")
         val DefaultPort = intPreferencesKey("default_port")
         val ConnectionTimeoutSeconds = intPreferencesKey("connection_timeout_seconds")
         val CommandTimeoutSeconds = intPreferencesKey("command_timeout_seconds")
