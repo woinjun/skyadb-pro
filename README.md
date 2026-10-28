@@ -2,6 +2,8 @@
 
 SkyADB Enhanced 第一阶段工程与自动化改动、版本和签名策略、Fork 启用步骤见 [增强版维护文档](docs/ENHANCED.md)。
 
+1.3.0 测试版新增 [ADB 触控板与陀螺仪飞鼠](docs/ADB-POINTER.md)，入口在设备详情页。蓝牙 HID 飞鼠将在后续迭代实现。
+
 <p align="center">
   <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.png"
        alt="demo1"

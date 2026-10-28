@@ -67,6 +67,7 @@ fun DeviceScreen(
     onRemoteClick: () -> Unit = {},
     onMirrorClick: () -> Unit = {},
     onLogsClick: () -> Unit = {},
+    onPointerClick: () -> Unit = {},
     viewModel: DeviceViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -84,6 +85,7 @@ fun DeviceScreen(
         onRemoteClick = onRemoteClick,
         onMirrorClick = onMirrorClick,
         onLogsClick = onLogsClick,
+        onPointerClick = onPointerClick,
         onRefreshClick = viewModel::refreshDeviceInfo,
         onToggleInfoClick = viewModel::toggleInfoExpanded,
     )
@@ -104,6 +106,7 @@ private fun DeviceContent(
     onRemoteClick: () -> Unit,
     onMirrorClick: () -> Unit,
     onLogsClick: () -> Unit,
+    onPointerClick: () -> Unit = {},
     onRefreshClick: () -> Unit,
     onToggleInfoClick: () -> Unit,
 ) {
@@ -191,6 +194,7 @@ private fun DeviceContent(
                     onRemoteClick = onRemoteClick,
                     onMirrorClick = onMirrorClick,
                     onLogsClick = onLogsClick,
+                    onPointerClick = onPointerClick,
                 )
             }
 
@@ -305,6 +309,7 @@ private fun QuickActionGrid(
     onRemoteClick: () -> Unit,
     onMirrorClick: () -> Unit,
     onLogsClick: () -> Unit,
+    onPointerClick: () -> Unit = {},
 ) {
     val shellLabel = stringResource(R.string.nav_shell)
     val actions = when (sessionKind) {
@@ -318,6 +323,7 @@ private fun QuickActionGrid(
             QuickActionSpec(stringResource(R.string.action_download_online), Icons.Outlined.Download, onDownloadClick, SharedToolKeys.Download),
             QuickActionSpec(stringResource(R.string.action_file_manage), Icons.Outlined.FolderOpen, onFilesClick, SharedToolKeys.Files),
             QuickActionSpec(shellLabel, Icons.Outlined.Code, onShellClick, SharedToolKeys.Shell),
+            QuickActionSpec(stringResource(R.string.pointer_title), Icons.Outlined.Android, onPointerClick),
             QuickActionSpec(stringResource(R.string.action_mirror), Icons.Outlined.Android, onMirrorClick),
             QuickActionSpec(stringResource(R.string.action_remote), Icons.Outlined.Android, onRemoteClick, SharedToolKeys.Remote),
             QuickActionSpec(stringResource(R.string.action_system_log), Icons.Outlined.Code, onLogsClick, SharedToolKeys.Logs),

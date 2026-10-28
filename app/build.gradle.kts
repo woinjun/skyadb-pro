@@ -24,7 +24,7 @@ android {
         !keyPasswordValue.isNullOrBlank()
 
     defaultConfig {
-        applicationId = providers.environmentVariable("ENHANCED_APPLICATION_ID").orElse("com.sky22333.skyadb").get()
+        applicationId = "io.github.woinjun.skyadbpro"
         minSdk = 24
         targetSdk = 37
         versionCode = ciVersionCode ?: enhancedVersion.getProperty("VERSION_CODE").toInt()

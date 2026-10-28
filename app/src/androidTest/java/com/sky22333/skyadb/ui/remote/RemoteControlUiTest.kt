@@ -39,7 +39,7 @@ class RemoteControlUiTest {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         ParcelFileDescriptor.AutoCloseInputStream(
                 instrumentation.uiAutomation.executeShellCommand(
-                    "am start -n com.sky22333.skyadb/.MainActivity"
+                    "am start -n ${instrumentation.targetContext.packageName}/com.sky22333.skyadb.MainActivity"
                 )
             )
             .use { it.readBytes() }

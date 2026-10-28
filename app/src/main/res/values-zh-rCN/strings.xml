@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">sky adb</string>
+    <string name="app_name">SkyADB Pro</string>
 
     <!-- Language -->
     <string name="language_follow_system">系统</string>
@@ -725,4 +725,27 @@
     <string name="mirror_toggle_keyboard">显示或关闭输入键盘</string>
     <string name="mirror_hide_keyboard">关闭输入键盘</string>
     <string name="usb_connection_hint">请保持数据线连接，在目标设备开启 USB 调试，并允许 USB 调试授权。授权等待超时后可重新连接。</string>
+    <string name="pointer_title">ADB 触控板 / 飞鼠</string>
+    <string name="pointer_intro">先通过 ADB 连接设备，再启动鼠标控制。目标设备须允许 UHID。离开页面或切到后台会停止控制。</string>
+    <string name="pointer_disconnected">鼠标控制已停止</string>
+    <string name="pointer_connecting">正在启动鼠标控制…</string>
+    <string name="pointer_ready">鼠标通道已就绪，请查看目标设备上的指针</string>
+    <string name="pointer_failed">鼠标控制失败</string>
+    <string name="pointer_unsupported">目标设备不允许访问 UHID。其系统版本或厂商策略可能不支持虚拟鼠标。</string>
+    <string name="pointer_connect">启动控制</string>
+    <string name="pointer_stop">停止控制</string>
+    <string name="pointer_touch_hint">单指滑动移动 · 轻触点击\n双指上下滑动滚轮</string>
+    <string name="pointer_left">左键</string>
+    <string name="pointer_right">右键</string>
+    <string name="pointer_drag">按住左键 / 拖动</string>
+    <string name="pointer_sensitivity">灵敏度：%1$.1f 倍</string>
+    <string name="pointer_air_title">ADB 陀螺仪飞鼠</string>
+    <string name="pointer_air_hint">竖握手机，开启后先保持静止一秒，再左右转动或上下俯仰。调整握姿前先暂停；指针漂移时重新校准。</string>
+    <string name="pointer_no_gyro">本机未检测到陀螺仪，仍可使用触控板。</string>
+    <string name="pointer_air_on">飞鼠已开启</string>
+    <string name="pointer_air_off">飞鼠已暂停</string>
+    <string name="pointer_calibrating">正在校准，请保持手机静止</string>
+    <string name="pointer_calibrated">校准完成</string>
+    <string name="pointer_calibrate">重新校准</string>
+    <string name="settings_upstream_title">原项目 / 作者来源</string>
 </resources>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">sky adb</string>
+    <string name="app_name">SkyADB Pro</string>
 
     <!-- Language -->
     <string name="language_follow_system">System</string>
@@ -725,4 +725,27 @@
     <string name="mirror_toggle_keyboard">Show or hide text keyboard</string>
     <string name="mirror_hide_keyboard">Close text keyboard</string>
     <string name="usb_connection_hint">Keep the data cable connected, enable USB debugging on the target and allow its debugging authorization prompt. Reconnect if authorization times out.</string>
+    <string name="pointer_title">ADB Touchpad / Air mouse</string>
+    <string name="pointer_intro">Connect to a device with ADB first, then start mouse control. The target must allow UHID. Leaving this page or switching apps stops control.</string>
+    <string name="pointer_disconnected">Mouse control stopped</string>
+    <string name="pointer_connecting">Starting mouse control…</string>
+    <string name="pointer_ready">Mouse channel ready — check the cursor on the target</string>
+    <string name="pointer_failed">Mouse control failed</string>
+    <string name="pointer_unsupported">The target does not allow UHID. Its Android version or device policy may not support a virtual mouse.</string>
+    <string name="pointer_connect">Start control</string>
+    <string name="pointer_stop">Stop control</string>
+    <string name="pointer_touch_hint">Slide one finger to move. Tap to click. Slide two fingers to scroll.</string>
+    <string name="pointer_left">Left click</string>
+    <string name="pointer_right">Right click</string>
+    <string name="pointer_drag">Hold left button / drag</string>
+    <string name="pointer_sensitivity">Sensitivity: %1$.1f×</string>
+    <string name="pointer_air_title">ADB Air mouse</string>
+    <string name="pointer_air_hint">Hold the phone upright, keep it still for the first second, then turn left/right or tilt up/down. Pause before changing your grip; recalibrate if the cursor drifts.</string>
+    <string name="pointer_no_gyro">No gyroscope detected. The touchpad is still available.</string>
+    <string name="pointer_air_on">Air mouse on</string>
+    <string name="pointer_air_off">Air mouse paused</string>
+    <string name="pointer_calibrating">Calibrating — keep the phone still</string>
+    <string name="pointer_calibrated">Calibration complete</string>
+    <string name="pointer_calibrate">Recalibrate</string>
+    <string name="settings_upstream_title">Original project / attribution</string>
 </resources>

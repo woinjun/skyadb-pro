@@ -252,8 +252,14 @@ private fun SettingsContent(
                     SettingBlock(
                         icon = Icons.AutoMirrored.Outlined.OpenInNew,
                         title = stringResource(R.string.settings_project_url_title),
-                        description = "sky22333/skyadb",
+                        description = "woinjun/skyadb-pro",
                         onClick = { uriHandler.openUri(ProjectUrl) },
+                    )
+                    SettingBlock(
+                        icon = Icons.AutoMirrored.Outlined.OpenInNew,
+                        title = stringResource(R.string.settings_upstream_title),
+                        description = "sky22333/skyadb",
+                        onClick = { uriHandler.openUri("https://github.com/sky22333/skyadb") },
                     )
                 }
             }
@@ -261,7 +267,7 @@ private fun SettingsContent(
     }
 }
 
-private const val ProjectUrl = "https://github.com/sky22333/skyadb"
+private const val ProjectUrl = "https://github.com/woinjun/skyadb-pro"
 
 @Preview(name = "设置页", showBackground = true, widthDp = 390)
 @Composable

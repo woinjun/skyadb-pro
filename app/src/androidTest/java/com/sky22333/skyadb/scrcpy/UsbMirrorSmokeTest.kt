@@ -45,7 +45,7 @@ class UsbMirrorSmokeTest {
         // Launch with shell privileges to avoid OEM background launch restrictions in tests.
         ParcelFileDescriptor.AutoCloseInputStream(
                 instrumentation.uiAutomation.executeShellCommand(
-                    "am start -n com.sky22333.skyadb/.MainActivity"
+                    "am start -n ${instrumentation.targetContext.packageName}/com.sky22333.skyadb.MainActivity"
                 )
             )
             .use { it.readBytes() }
