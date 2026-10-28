@@ -69,6 +69,14 @@ jobs:
           done
           umask 077
           printf '%s' "$SIGNING_KEY_BASE64" | base64 --decode > "$RUNNER_TEMP/release.p12"
+          if [[ "$KEY_PASSWORD" != "$KEY_STORE_PASSWORD" ]]; then
+            echo '::error::This PKCS12 key requires identical KEY_PASSWORD and KEY_STORE_PASSWORD values.'
+            exit 1
+          fi
+          if ! keytool -list -storetype PKCS12 -keystore "$RUNNER_TEMP/release.p12" -storepass:env KEY_STORE_PASSWORD -alias "$KEY_ALIAS" >/dev/null 2>&1; then
+            echo '::error::Signing key/password/alias do not match. Re-copy the local signing values into GitHub Secrets.'
+            exit 1
+          fi
       - name: Test and build
         env:
           SIGNING_STORE_FILE: ${{ runner.temp }}/release.p12
