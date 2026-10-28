@@ -1,53 +1,48 @@
-name: Android 正式版发布
-
+name: Signed release
 on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "正式版本标签，例如 v1.0.0。"
-        required: true
-        default: "v1.0.0"
-
+  push:
+    tags: ['v*']
 permissions:
-  contents: write
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
-  build:
-    name: 构建并发布正式版
+  release:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
-
+    timeout-minutes: 45
+    environment: release
+    permissions:
+      contents: write
+    env:
+      ENHANCED_APPLICATION_ID: ${{ vars.ENHANCED_APPLICATION_ID }}
     steps:
-      - name: 拉取代码
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-
-      - name: 配置 JDK
-        uses: actions/setup-java@v5
+      - name: Validate version and identity
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF_NAME" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          source version.properties
+          [[ "$GITHUB_REF_NAME" == "v$VERSION_NAME" ]]
+          [[ "$VERSION_CODE" =~ ^[1-9][0-9]*$ ]]
+          (( VERSION_CODE > 101069 && VERSION_CODE <= 2100000000 ))
+          [[ "$ENHANCED_APPLICATION_ID" =~ ^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*){2,}$ ]]
+          [[ "$ENHANCED_APPLICATION_ID" != com.sky22333.skyadb ]]
+          previous=$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD^ 2>/dev/null || true)
+          if [[ -n "$previous" ]]; then
+            old=$(git show "$previous:version.properties" 2>/dev/null | sed -n 's/^VERSION_CODE=//p' || true)
+            if [[ -n "$old" ]]; then (( VERSION_CODE > old )); fi
+          fi
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "17"
-
-      - name: 配置 Android SDK
-        uses: android-actions/setup-android@v4
-
-      - name: 安装 Android SDK 组件
-        run: |
-          sdkmanager "platforms;android-37.0" "build-tools;37.0.0"
-
-      - name: 授予 Wrapper 执行权限
-        run: chmod +x gradlew
-
-      - name: 配置 Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          gradle-version: wrapper
-
-      - name: 解码发布签名密钥
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+      - run: sdkmanager "platforms;android-37.0" "build-tools;37.0.0"
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Decode signing key
         env:
           SIGNING_KEY_BASE64: ${{ secrets.SIGNING_KEY_BASE64 }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
@@ -55,80 +50,38 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          if [[ -z "${SIGNING_KEY_BASE64}" || -z "${KEY_ALIAS}" || -z "${KEY_STORE_PASSWORD}" || -z "${KEY_PASSWORD}" ]]; then
-            echo "缺少发布签名密钥，请配置 SIGNING_KEY_BASE64、KEY_ALIAS、KEY_STORE_PASSWORD、KEY_PASSWORD。" >&2
-            exit 1
-          fi
-          mkdir -p "${RUNNER_TEMP}/signing"
-          echo "${SIGNING_KEY_BASE64}" | base64 --decode > "${RUNNER_TEMP}/signing/release.p12"
-
-      - name: 运行单元测试
-        run: ./gradlew --no-daemon testDebugUnitTest
-
-      - name: 运行 Android Lint
-        run: ./gradlew --no-daemon lintRelease
-
-      - name: 构建 Release APK
+          for key in SIGNING_KEY_BASE64 KEY_ALIAS KEY_STORE_PASSWORD KEY_PASSWORD; do
+            [[ -n "${!key}" ]] || { echo "::error::Missing signing secret $key"; exit 1; }
+          done
+          umask 077
+          printf '%s' "$SIGNING_KEY_BASE64" | base64 --decode > "$RUNNER_TEMP/release.p12"
+      - name: Test and build
         env:
-          VERSION_NAME: ${{ inputs.tag }}
-          SIGNING_STORE_FILE: ${{ runner.temp }}/signing/release.p12
+          SIGNING_STORE_FILE: ${{ runner.temp }}/release.p12
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          set -euo pipefail
-          RELEASE_TAG="$(echo "${VERSION_NAME}" | xargs)"
-          if [[ ! "${RELEASE_TAG}" =~ ^v ]]; then
-            echo "正式版本标签必须以 v 开头，例如 v1.0.0。" >&2
-            exit 1
-          fi
-          VERSION_NAME="${RELEASE_TAG#v}"
-          if [[ ! "${VERSION_NAME}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "版本标签必须是 v主版本.次版本.修订版本，例如 v1.0.0。" >&2
-            exit 1
-          fi
-          IFS='.' read -r MAJOR MINOR PATCH <<< "${VERSION_NAME}"
-          VERSION_CODE=$(((MAJOR * 10000 + MINOR * 100 + PATCH) * 10 + 9))
-          export VERSION_NAME VERSION_CODE
-          ./gradlew --no-daemon assembleRelease
-
-      - name: 发布正式版 APK 到 GitHub Releases
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG_INPUT: ${{ inputs.tag }}
+          chmod +x gradlew
+          set -o pipefail
+          ./gradlew --no-daemon --stacktrace :app:testDebugUnitTest :app:lintRelease :app:assembleRelease 2>&1 | tee build.log
+      - name: Verify and checksum
         run: |
           set -euo pipefail
-          RELEASE_TAG="$(echo "${RELEASE_TAG_INPUT}" | xargs)"
-          if [[ -z "${RELEASE_TAG}" ]]; then
-            echo "版本标签不能为空。" >&2
-            exit 1
-          fi
-          APK_PATH="$(find app/build/outputs/apk/release -name '*.apk' | head -n 1)"
-          RELEASE_TITLE="skyadb ${RELEASE_TAG}"
-          CURRENT_TAG="${RELEASE_TAG}"
-          PREVIOUS_TAG="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | grep -v "^${CURRENT_TAG}$" | head -n 1 || true)"
-          if [[ -n "${PREVIOUS_TAG}" ]]; then
-            RANGE="${PREVIOUS_TAG}..HEAD"
-          else
-            RANGE="HEAD"
-          fi
-          CHANGELOG="$(git log "${RANGE}" --no-merges --pretty=format:'%s%x09%h' | awk -F '\t' '!seen[$1]++ { printf "- %s (%s)\n", $1, $2 }' || true)"
-          if [[ -z "${CHANGELOG}" ]]; then
-            CHANGELOG="- 本次正式版未检测到新的提交记录。"
-          fi
-          RELEASE_NOTES="$(mktemp)"
-          {
-            echo "## 正式版更新记录"
-            echo
-            echo "${CHANGELOG}"
-          } > "${RELEASE_NOTES}"
-          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
-            gh release edit "${RELEASE_TAG}" \
-              --title "${RELEASE_TITLE}" \
-              --notes-file "${RELEASE_NOTES}"
-            gh release upload "${RELEASE_TAG}" "${APK_PATH}" --clobber
-          else
-            gh release create "${RELEASE_TAG}" "${APK_PATH}" \
-              --title "${RELEASE_TITLE}" \
-              --notes-file "${RELEASE_NOTES}"
-          fi
+          mkdir dist
+          cp app/build/outputs/apk/release/app-release.apk "dist/SkyADB-Enhanced-$GITHUB_REF_NAME.apk"
+          "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --verbose --print-certs dist/*.apk
+          (cd dist && sha256sum *.apk > SHA256SUMS)
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --title "SkyADB Enhanced $GITHUB_REF_NAME" --generate-notes
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-diagnostics-${{ github.run_id }}
+          path: |
+            build.log
+            app/build/reports/
+      - if: always()
+        run: rm -f "$RUNNER_TEMP/release.p12"

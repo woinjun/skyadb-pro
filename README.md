@@ -1,5 +1,7 @@
 # sky adb
 
+SkyADB Enhanced 第一阶段工程与自动化改动、版本和签名策略、Fork 启用步骤见 [增强版维护文档](docs/ENHANCED.md)。
+
 <p align="center">
   <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.png"
        alt="demo1"

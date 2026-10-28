@@ -1,6 +1,12 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+}
+
+val enhancedVersion = Properties().apply {
+    rootProject.file("version.properties").inputStream().use { load(it) }
 }
 
 android {
@@ -18,11 +24,11 @@ android {
         !keyPasswordValue.isNullOrBlank()
 
     defaultConfig {
-        applicationId = "com.sky22333.skyadb"
+        applicationId = providers.environmentVariable("ENHANCED_APPLICATION_ID").orElse("com.sky22333.skyadb").get()
         minSdk = 24
         targetSdk = 37
-        versionCode = ciVersionCode ?: 10000
-        versionName = ciVersionName ?: "1.0.0"
+        versionCode = ciVersionCode ?: enhancedVersion.getProperty("VERSION_CODE").toInt()
+        versionName = ciVersionName ?: enhancedVersion.getProperty("VERSION_NAME")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -39,6 +45,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix = ".enhanced.debug"
+            versionNameSuffix = "-debug"
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true

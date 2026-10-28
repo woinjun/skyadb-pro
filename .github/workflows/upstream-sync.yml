@@ -1,0 +1,72 @@
+name: Check upstream
+on:
+  schedule:
+    - cron: '23 2 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: false
+jobs:
+  sync:
+    if: github.repository != 'sky22333/skyadb'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Merge upstream into proposal only
+        id: merge
+        env:
+          BASE: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          git remote add upstream https://github.com/sky22333/skyadb.git
+          git fetch upstream
+          upstream_ref=$(git ls-remote --symref upstream HEAD | awk '/^ref:/ {print $2}')
+          git fetch upstream "$upstream_ref"
+          upstream_sha=$(git rev-parse FETCH_HEAD)
+          echo "sha=$upstream_sha" >> "$GITHUB_OUTPUT"
+          if git merge-base --is-ancestor "$upstream_sha" HEAD; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c automation/upstream-sync
+          # Fetch the dedicated bot branch so the lease rejects concurrent changes.
+          git fetch origin automation/upstream-sync:refs/remotes/origin/automation/upstream-sync || true
+          if git merge --no-edit "$upstream_sha"; then
+            git push origin HEAD:refs/heads/automation/upstream-sync --force-with-lease
+            echo "conflict=false" >> "$GITHUB_OUTPUT"
+          else
+            git diff --name-only --diff-filter=U > /tmp/upstream-conflicts
+            git merge --abort
+            echo "conflict=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Open reminder and pull request
+        if: steps.merge.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE: ${{ github.event.repository.default_branch }}
+          UPSTREAM_SHA: ${{ steps.merge.outputs.sha }}
+          CONFLICT: ${{ steps.merge.outputs.conflict }}
+        run: |
+          set -euo pipefail
+          title="Upstream update: $UPSTREAM_SHA"
+          if [[ "$CONFLICT" == true ]]; then
+            printf 'Merge conflicts require maintainer review. No feature branch or default branch was overwritten.\n\n' > /tmp/upstream-body
+            cat /tmp/upstream-conflicts >> /tmp/upstream-body
+          else
+            printf 'Review upstream merge %s. Never auto-merge this PR.\n' "$UPSTREAM_SHA" > /tmp/upstream-body
+            if ! gh pr list --head automation/upstream-sync --json number --jq '.[].number' | grep -q .; then
+              gh pr create --base "$BASE" --head automation/upstream-sync --title "$title" --body-file /tmp/upstream-body
+            fi
+          fi
+          if ! gh issue list --search "$UPSTREAM_SHA in:title" --json number --jq '.[].number' | grep -q .; then
+            gh issue create --title "$title" --body-file /tmp/upstream-body
+          fi
