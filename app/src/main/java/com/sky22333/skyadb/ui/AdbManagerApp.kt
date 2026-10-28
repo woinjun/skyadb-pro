@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.annotation.StringRes
+import com.sky22333.skyadb.ui.pointer.PointerScreen
 import com.sky22333.skyadb.R
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.NavHost
@@ -196,6 +197,7 @@ fun AdbManagerApp() {
                             onRemoteClick = { navController.navigate(RemoteRoute) },
                             onMirrorClick = { navController.navigate(MirrorRoute) },
                             onLogsClick = { navController.navigate(LogsRoute) },
+                            onPointerClick = { navController.navigate("pointer") },
                         )
                     }
                     appComposable(AppDestination.Settings.route) {
@@ -278,6 +280,9 @@ fun AdbManagerApp() {
                     }
                     appComposable(RemoteRoute, SharedToolKeys.Remote) {
                         RemoteControlScreen(bottomPadding = bottomPadding, onBackClick = { navController.popBackStack() })
+                    }
+                    appComposable("pointer") {
+                        PointerScreen(bottomPadding = bottomPadding, onBackClick = { navController.popBackStack() })
                     }
                     appComposable(MirrorRoute) {
                         MirrorScreen(onBackClick = { navController.popBackStack() })
